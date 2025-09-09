@@ -63,7 +63,7 @@ inicializa_csv()
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # =========================
-# MENSAGEM AGRESSIVA E PERSUASIVA
+# MENSAGEM AGRESSIVA / COPY
 # =========================
 def mensagem_agressiva(nome):
     return (
@@ -72,8 +72,15 @@ def mensagem_agressiva(nome):
         f"🏦 IBAN: {IBAN}\n\n"
         "⚠️ Apenas os mais rápidos e decididos entram!\n"
         "⏳ Quanto mais você esperar, mais chances perde de estar entre os VIPs.\n"
-        "📸 Envie **somente foto ou PDF** como comprovante agora e garanta seu lugar.\n"
         "💎 VIP é limitado. Quem hesita, perde!"
+    )
+
+def mensagem_envio_comprovante(nome):
+    return (
+        f"📸 Olá {nome}! Agora envie **uma foto ou PDF como comprovante** do pagamento para liberar seu acesso VIP.\n\n"
+        f"💰 Valor: {VALOR}\n"
+        f"🏦 IBAN: {IBAN}\n"
+        "💎 Apenas os rápidos e decididos entram!"
     )
 
 # =========================
@@ -106,7 +113,7 @@ def callback_query(call):
 
     if call.data == "enviar_comprovante":
         if usuario_pendente(user_id):
-            bot.send_message(user_id, mensagem_agressiva(nome))
+            bot.send_message(user_id, mensagem_envio_comprovante(nome))
         else:
             bot.send_message(user_id, "⚠️ Você já foi aprovado ou não possui pendência.")
 
