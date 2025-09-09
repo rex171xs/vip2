@@ -1,19 +1,27 @@
-import telebot
 import os
+import telebot
 import csv
 
 # =========================
-# CONFIGURAÇÕES
+# LEITURA DE VARIÁVEIS DE AMBIENTE
 # =========================
-BOT_TOKEN = os.getenv("8315294732:AAEJ9N31Gu0tC_PAmR34-jnNce14lHAyDEw")               # Token do @BotFather
-CHAT_LOGS_ID = os.getenv("8245488250")        # Seu Telegram para receber logs
-LINK_GRUPO_VIP = "https://t.me/+F0HUkrlAgjFiMzU8"  # Link do grupo VIP
+BOT_TOKEN = os.getenv("8315294732:AAEJ9N31Gu0tC_PAmR34-jnNce14lHAyDEw")
+CHAT_LOGS_ID = os.getenv("8245488250")  # Pode ser chat pessoal ou grupo
+LINK_GRUPO_VIP = "https://t.me/+F0HUkrlAgjFiMzU8"  # link do grupo VIP
 VALOR = "10-15€"
 IBAN = "LT94 3250 0541 9665 3953"
-AUTOMATIC_APPROVE = True  # True = aprova automaticamente após envio de comprovante, False = aprovação manual
+AUTOMATIC_APPROVE = True  # True = aprova automaticamente, False = manual
 
-bot = telebot.TeleBot(BOT_TOKEN)
 CSV_FILE = "pagamentos.csv"
+
+# =========================
+# CHECAGEM DE VARIÁVEIS
+# =========================
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN não está definido! Verifique as variáveis de ambiente.")
+
+if not CHAT_LOGS_ID:
+    raise ValueError("CHAT_LOGS_ID não está definido! Verifique as variáveis de ambiente.")
 
 # =========================
 # FUNÇÕES AUXILIARES CSV
@@ -49,20 +57,27 @@ def usuario_pendente(user_id):
                 return True
     return False
 
-# Inicializa CSV
+# =========================
+# INICIALIZA CSV
+# =========================
 inicializa_csv()
 
 # =========================
-# LOGS NO TELEGRAM
+# INICIALIZA BOT
+# =========================
+bot = telebot.TeleBot(BOT_TOKEN)
+
+# =========================
+# FUNÇÃO DE LOG NO TELEGRAM
 # =========================
 def log_telegram(mensagem):
     try:
         bot.send_message(CHAT_LOGS_ID, mensagem)
     except Exception as e:
-        print(f"Erro ao enviar log: {e}")
+        print("Erro enviando log:", e)
 
 # =========================
-# NOVO MEMBRO NO GRUPO (solicita entrada)
+# EVENTO NOVO MEMBRO NO GRUPO
 # =========================
 @bot.message_handler(content_types=["new_chat_members"])
 def welcome_new_member(message):
@@ -71,18 +86,18 @@ def welcome_new_member(message):
             adicionar_usuario(member.id, member.first_name)
             bot.send_message(
                 member.id,
-                f"Olá {member.first_name}! 😏\n"
+                f"Olá {member.first_name}! 👋\n"
                 f"Para entrar no grupo VIP, é necessário pagar {VALOR}.\n"
                 f"IBAN: {IBAN}\n\n"
                 "Após o pagamento, envie uma foto ou arquivo comprovando aqui.\n"
                 "Se estiver configurado para aprovação automática, você será adicionado diretamente ao grupo!"
             )
             log_telegram(f"Novo usuário pendente: {member.first_name} ({member.id})")
-        except:
-            print(f"Não foi possível enviar mensagem privada para {member.first_name}")
+        except Exception as e:
+            print(f"Não foi possível enviar mensagem privada para {member.first_name}: {e}")
 
 # =========================
-# RECEBIMENTO DE COMPROVANTE
+# RECEBER COMPROVANTE
 # =========================
 @bot.message_handler(content_types=["photo", "document"])
 def receber_comprovante(message):
@@ -91,41 +106,28 @@ def receber_comprovante(message):
     if usuario_pendente(user_id):
         if AUTOMATIC_APPROVE:
             aprovar_usuario(user_id)
-            bot.reply_to(message, f"Pagamento recebido! ✅ Você agora está aprovado para o grupo VIP.")
-            bot.send_message(user_id, f"Aqui está o link do grupo VIP: {LINK_GRUPO_VIP}")
+            bot.send_message(user_id, f"Pagamento recebido! ✅ Aqui está o link do grupo VIP: {LINK_GRUPO_VIP}")
             log_telegram(f"Pagamento confirmado AUTOMATICAMENTE: {nome} ({user_id})")
         else:
-            bot.reply_to(message, f"Recebemos seu comprovante, {nome}. ✅ Você será aprovado manualmente em breve.")
+            bot.send_message(user_id, f"Recebemos seu comprovante, {nome}. ✅ Você será aprovado manualmente em breve.")
             log_telegram(f"Pagamento recebido (AGUARDANDO APROVAÇÃO): {nome} ({user_id})")
     else:
         bot.reply_to(message, "Você não possui pendência de pagamento ou já foi aprovado.")
-
-# =========================
-# COMANDO /aprovar MANUAL (somente se AUTOMATIC_APPROVE=False)
-# =========================
-@bot.message_handler(commands=["aprovar"])
-def aprovar_manual(message):
-    if AUTOMATIC_APPROVE:
-        bot.reply_to(message, "Aprovação manual desativada, bot aprova automaticamente.")
-        return
-    args = message.text.split()
-    if len(args) != 2:
-        bot.reply_to(message, "Use: /aprovar <user_id>")
-        return
-    user_id = args[1]
-    aprovar_usuario(user_id)
-    bot.send_message(user_id, f"Você foi aprovado no grupo VIP! Link: {LINK_GRUPO_VIP}")
-    bot.reply_to(message, f"Usuário {user_id} aprovado com sucesso!")
-    log_telegram(f"Usuário aprovado manualmente: {user_id}")
 
 # =========================
 # COMANDO /start
 # =========================
 @bot.message_handler(commands=["start"])
 def start(message):
-    bot.reply_to(message, "Oi 👋 estou online 24h! Este é o bot do grupo VIP.")
+    bot.reply_to(message, "Oi 👋 estou online 24h no Railway! Este é o bot do grupo VIP.")
+    log_telegram(f"Bot iniciado. Usuário {message.from_user.first_name} ({message.from_user.id}) executou /start")
 
 # =========================
 # RODA O BOT 24H
 # =========================
-bot.infinity_polling()
+try:
+    log_telegram("Bot iniciado com sucesso ✅")
+    bot.infinity_polling(timeout=10, long_polling_timeout=5)
+except Exception as e:
+    print("Erro no polling:", e)
+    log_telegram(f"Erro no polling: {e}")
