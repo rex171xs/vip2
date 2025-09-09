@@ -11,6 +11,7 @@ LINK_GRUPO_VIP = "https://t.me/+KJmxLUcAUIllNTU0"  # link VIP final
 VALOR = "15€"
 IBAN = "LT94 3250 0541 9665 3953"
 CSV_FILE = "pagamentos.csv"
+VIDEO_PATH = "mini_vip.mp4"  # caminho do mini vídeo
 
 # =========================
 # CSV
@@ -84,6 +85,22 @@ def mensagem_envio_comprovante(nome):
     )
 
 # =========================
+# FUNÇÃO PARA ENVIAR VÍDEO COM COPY E BOTÃO
+# =========================
+def enviar_video_com_copy(user_id, nome):
+    markup = types.InlineKeyboardMarkup()
+    btn = types.InlineKeyboardButton("💎 Enviar comprovante", callback_data="enviar_comprovante")
+    markup.add(btn)
+    
+    with open(VIDEO_PATH, "rb") as video:
+        bot.send_video(
+            user_id,
+            video,
+            caption=mensagem_agressiva(nome),
+            reply_markup=markup
+        )
+
+# =========================
 # NOVO MEMBRO NO GRUPO DE PRÉVIA
 # =========================
 @bot.message_handler(content_types=["new_chat_members"])
@@ -91,15 +108,7 @@ def welcome_new_member(message):
     for member in message.new_chat_members:
         try:
             adicionar_usuario(member.id, member.first_name)
-            markup = types.InlineKeyboardMarkup()
-            btn = types.InlineKeyboardButton("💎 Enviar comprovante", callback_data="enviar_comprovante")
-            markup.add(btn)
-            bot.send_message(
-                member.id,
-                f"Olá {member.first_name}! 👋\nVocê entrou no grupo de prévia.\n\n"
-                "⚡ Clique no botão abaixo para iniciar seu acesso VIP antes que acabe!",
-                reply_markup=markup
-            )
+            enviar_video_com_copy(member.id, member.first_name)
         except Exception as e:
             print(f"Não foi possível enviar mensagem privada: {e}")
 
@@ -148,11 +157,7 @@ def start(message):
     nome = message.from_user.first_name
 
     adicionar_usuario(user_id, nome)
-    markup = types.InlineKeyboardMarkup()
-    btn = types.InlineKeyboardButton("💎 Enviar comprovante", callback_data="enviar_comprovante")
-    markup.add(btn)
-
-    bot.send_message(user_id, mensagem_agressiva(nome), reply_markup=markup)
+    enviar_video_com_copy(user_id, nome)
 
 # =========================
 # RODA 24H
