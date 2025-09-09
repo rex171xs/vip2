@@ -7,8 +7,8 @@ from telebot import types
 # CONFIGURAÇÕES
 # =========================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-LINK_GRUPO_VIP = "https://t.me/+F0HUkrlAgjFiMzU8"  # link VIP final
-VALOR = "10-15€"
+LINK_GRUPO_VIP = "https://t.me/+KJmxLUcAUIllNTU0"  # link VIP final
+VALOR = "15€"
 IBAN = "LT94 3250 0541 9665 3953"
 CSV_FILE = "pagamentos.csv"
 
@@ -63,15 +63,17 @@ inicializa_csv()
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # =========================
-# MENSAGEM AGRESSIVA
+# MENSAGEM AGRESSIVA E PERSUASIVA
 # =========================
 def mensagem_agressiva(nome):
     return (
-        f"🔥 Ei {nome}! VIP mais exclusivo esperando por você! 🔥\n\n"
+        f"🔥 Ei {nome}, VIP mais exclusivo esperando por você! 🔥\n\n"
         f"💰 Valor: {VALOR}\n"
         f"🏦 IBAN: {IBAN}\n\n"
-        "Envie **somente foto ou PDF** como comprovante.\n"
-        "💎 Apenas os rápidos e decididos entram!"
+        "⚠️ Apenas os mais rápidos e decididos entram!\n"
+        "⏳ Quanto mais você esperar, mais chances perde de estar entre os VIPs.\n"
+        "📸 Envie **somente foto ou PDF** como comprovante agora e garanta seu lugar.\n"
+        "💎 VIP é limitado. Quem hesita, perde!"
     )
 
 # =========================
@@ -88,7 +90,7 @@ def welcome_new_member(message):
             bot.send_message(
                 member.id,
                 f"Olá {member.first_name}! 👋\nVocê entrou no grupo de prévia.\n\n"
-                "⚡ Clique no botão abaixo para iniciar seu acesso VIP!",
+                "⚡ Clique no botão abaixo para iniciar seu acesso VIP antes que acabe!",
                 reply_markup=markup
             )
         except Exception as e:
@@ -106,7 +108,7 @@ def callback_query(call):
         if usuario_pendente(user_id):
             bot.send_message(user_id, mensagem_agressiva(nome))
         else:
-            bot.send_message(user_id, "Você já foi aprovado ou não possui pendência.")
+            bot.send_message(user_id, "⚠️ Você já foi aprovado ou não possui pendência.")
 
 # =========================
 # RECEBENDO COMPROVANTE (VIP liberado automático)
@@ -126,9 +128,9 @@ def receber_comprovante(message):
 
         # aprova e envia VIP
         aprovar_usuario(user_id)
-        bot.send_message(user_id, f"✅ Pagamento confirmado! Aqui está seu link VIP: {LINK_GRUPO_VIP}")
+        bot.send_message(user_id, f"✅ Pagamento confirmado! Aqui está seu link VIP: {LINK_GRUPO_VIP}\n\n💎 Bem-vindo(a) ao VIP mais exclusivo!")
     else:
-        bot.reply_to(message, "Você não possui pendência ou já foi aprovado.")
+        bot.reply_to(message, "⚠️ Você não possui pendência ou já foi aprovado.")
 
 # =========================
 # /start
