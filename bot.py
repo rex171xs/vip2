@@ -5,8 +5,8 @@ import csv
 # =========================
 # LEITURA DE VARIÁVEIS DE AMBIENTE
 # =========================
-BOT_TOKEN = os.getenv("8315294732:AAEJ9N31Gu0tC_PAmR34-jnNce14lHAyDEw")
-CHAT_LOGS_ID = os.getenv("8245488250")  # Pode ser chat pessoal ou grupo
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_LOGS_ID = os.getenv("CHAT_LOGS_ID")
 LINK_GRUPO_VIP = "https://t.me/+F0HUkrlAgjFiMzU8"  # link do grupo VIP
 VALOR = "10-15€"
 IBAN = "LT94 3250 0541 9665 3953"
@@ -131,3 +131,4 @@ try:
 except Exception as e:
     print("Erro no polling:", e)
     log_telegram(f"Erro no polling: {e}")
+
