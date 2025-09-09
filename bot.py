@@ -4,10 +4,10 @@ import csv
 from telebot import types
 
 # =========================
-# VARIÁVEIS
+# CONFIGURAÇÕES
 # =========================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-LINK_GRUPO_VIP = "https://t.me/+KJmxLUcAUIllNTU0"  # link do grupo VIP
+LINK_GRUPO_VIP = "https://t.me/+F0HUkrlAgjFiMzU8"  # link VIP final
 VALOR = "10-15€"
 IBAN = "LT94 3250 0541 9665 3953"
 CSV_FILE = "pagamentos.csv"
@@ -19,7 +19,7 @@ def inicializa_csv():
     if not os.path.exists(CSV_FILE):
         with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["user_id","nome","status"])  # status = pendente/pago
+            writer.writerow(["user_id","nome","status"])  # pendente/pago
 
 def adicionar_usuario(user_id, nome):
     if not usuario_existe(user_id):
@@ -67,28 +67,32 @@ bot = telebot.TeleBot(BOT_TOKEN)
 # =========================
 def mensagem_agressiva(nome):
     return (
-        f"🔥 Ei {nome}! Você pode entrar no VIP mais exclusivo! 🔥\n\n"
-        f">> O valor para entrar é {VALOR}.\n"
-        f">> IBAN para pagamento: {IBAN}\n\n"
-        ">> Envie uma foto ou documento como comprovativo.\n"
+        f"🔥 Ei {nome}! VIP mais exclusivo esperando por você! 🔥\n\n"
+        f"💰 Valor: {VALOR}\n"
+        f"🏦 IBAN: {IBAN}\n\n"
+        "Envie **somente foto ou PDF** como comprovante.\n"
         "💎 Apenas os rápidos e decididos entram!"
     )
 
 # =========================
-# /start
+# NOVO MEMBRO NO GRUPO DE PRÉVIA
 # =========================
-@bot.message_handler(commands=["start"])
-def start(message):
-    user_id = message.from_user.id
-    nome = message.from_user.first_name
-
-    adicionar_usuario(user_id, nome)
-
-    markup = types.InlineKeyboardMarkup()
-    btn = types.InlineKeyboardButton("💎 Enviar comprovante", callback_data="enviar_comprovante")
-    markup.add(btn)
-
-    bot.send_message(user_id, mensagem_agressiva(nome), reply_markup=markup)
+@bot.message_handler(content_types=["new_chat_members"])
+def welcome_new_member(message):
+    for member in message.new_chat_members:
+        try:
+            adicionar_usuario(member.id, member.first_name)
+            markup = types.InlineKeyboardMarkup()
+            btn = types.InlineKeyboardButton("💎 Enviar comprovante", callback_data="enviar_comprovante")
+            markup.add(btn)
+            bot.send_message(
+                member.id,
+                f"Olá {member.first_name}! 👋\nVocê entrou no grupo de prévia.\n\n"
+                "⚡ Clique no botão abaixo para iniciar seu acesso VIP!",
+                reply_markup=markup
+            )
+        except Exception as e:
+            print(f"Não foi possível enviar mensagem privada: {e}")
 
 # =========================
 # BOTÃO INLINE
@@ -100,12 +104,12 @@ def callback_query(call):
 
     if call.data == "enviar_comprovante":
         if usuario_pendente(user_id):
-            bot.send_message(user_id, f"{nome}, envie aqui seu comprovante (foto ou documento).")
+            bot.send_message(user_id, mensagem_agressiva(nome))
         else:
             bot.send_message(user_id, "Você já foi aprovado ou não possui pendência.")
 
 # =========================
-# RECEBENDO COMPROVANTE (aprovacao manual)
+# RECEBENDO COMPROVANTE (VIP liberado automático)
 # =========================
 @bot.message_handler(content_types=["photo","document"])
 def receber_comprovante(message):
@@ -113,28 +117,35 @@ def receber_comprovante(message):
     nome = message.from_user.first_name
 
     if usuario_pendente(user_id):
-        bot.send_message(user_id, "✅ Comprovante recebido! Sua entrada será liberada após aprovação manual.")
+        # valida documento
+        if message.content_type == "document":
+            doc_name = message.document.file_name.lower()
+            if not (doc_name.endswith(".jpg") or doc_name.endswith(".jpeg") or doc_name.endswith(".png") or doc_name.endswith(".pdf")):
+                bot.send_message(user_id, "❌ Arquivo inválido! Apenas imagens ou PDF são aceitos.")
+                return
+
+        # aprova e envia VIP
+        aprovar_usuario(user_id)
+        bot.send_message(user_id, f"✅ Pagamento confirmado! Aqui está seu link VIP: {LINK_GRUPO_VIP}")
     else:
         bot.reply_to(message, "Você não possui pendência ou já foi aprovado.")
 
 # =========================
-# COMANDO PARA APROVAR MANUALMENTE
+# /start
 # =========================
-@bot.message_handler(commands=["aprovar"])
-def comando_aprovar(message):
-    args = message.text.split()
-    if len(args) == 2 and args[1].isdigit():
-        user_id = int(args[1])
-        if usuario_pendente(user_id):
-            aprovar_usuario(user_id)
-            bot.send_message(user_id, f"🎉 Parabéns! Você agora tem acesso ao VIP: {LINK_GRUPO_VIP}")
-            bot.reply_to(message, f"Usuário {user_id} aprovado com sucesso.")
-        else:
-            bot.reply_to(message, "Usuário não encontrado ou já aprovado.")
-    else:
-        bot.reply_to(message, "Uso correto: /aprovar <user_id>")
+@bot.message_handler(commands=["start"])
+def start(message):
+    user_id = message.from_user.id
+    nome = message.from_user.first_name
+
+    adicionar_usuario(user_id, nome)
+    markup = types.InlineKeyboardMarkup()
+    btn = types.InlineKeyboardButton("💎 Enviar comprovante", callback_data="enviar_comprovante")
+    markup.add(btn)
+
+    bot.send_message(user_id, mensagem_agressiva(nome), reply_markup=markup)
 
 # =========================
-# RODA BOT 24H
+# RODA 24H
 # =========================
 bot.infinity_polling(timeout=10,long_polling_timeout=5)
