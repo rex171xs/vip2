@@ -78,7 +78,7 @@ def mensagem_agressiva(nome):
 
 def mensagem_envio_comprovante(nome):
     return (
-        f"📸 Olá {nome}! Agora envie **uma foto ou PDF como comprovante** do pagamento para liberar seu acesso VIP.\n\n"
+        f"📸 Olá {nome}! Agora envie **uma foto ou PDF como comprovativo** do pagamento para liberar seu acesso VIP.\n\n"
         f"💰 Valor: {VALOR}\n"
         f"🏦 IBAN: {IBAN}\n"
         "💎 Apenas os rápidos e decididos entram!"
@@ -89,7 +89,7 @@ def mensagem_envio_comprovante(nome):
 # =========================
 def enviar_video_com_copy(user_id, nome):
     markup = types.InlineKeyboardMarkup()
-    btn = types.InlineKeyboardButton("💎 Enviar comprovante", callback_data="enviar_comprovante")
+    btn = types.InlineKeyboardButton("💎 Enviar Comprovativo", callback_data="enviar_comprovante")
     markup.add(btn)
     
     with open(VIDEO_PATH, "rb") as video:
@@ -163,3 +163,4 @@ def start(message):
 # RODA 24H
 # =========================
 bot.infinity_polling(timeout=10,long_polling_timeout=5)
+
