@@ -1,9 +1,11 @@
 import os
 import telebot
 import csv
+import time
+from telebot import types
 
 # =========================
-# LEITURA DE VARIÁVEIS DE AMBIENTE
+# VARIÁVEIS DE AMBIENTE
 # =========================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_LOGS_ID = os.getenv("CHAT_LOGS_ID")
@@ -11,7 +13,6 @@ LINK_GRUPO_VIP = "https://t.me/+F0HUkrlAgjFiMzU8"  # link do grupo VIP
 VALOR = "10-15€"
 IBAN = "LT94 3250 0541 9665 3953"
 AUTOMATIC_APPROVE = True  # True = aprova automaticamente, False = manual
-
 CSV_FILE = "pagamentos.csv"
 
 # =========================
@@ -19,7 +20,6 @@ CSV_FILE = "pagamentos.csv"
 # =========================
 if not BOT_TOKEN:
     raise ValueError("BOT_TOKEN não está definido! Verifique as variáveis de ambiente.")
-
 if not CHAT_LOGS_ID:
     raise ValueError("CHAT_LOGS_ID não está definido! Verifique as variáveis de ambiente.")
 
@@ -77,7 +77,21 @@ def log_telegram(mensagem):
         print("Erro enviando log:", e)
 
 # =========================
-# EVENTO NOVO MEMBRO NO GRUPO
+# PROTEÇÃO ANTI-FLOOD
+# =========================
+usuarios_ativos = {}  # user_id: timestamp
+TEMPO_ESPERA = 60  # segundos entre /start
+
+def pode_iniciar(user_id):
+    agora = time.time()
+    if user_id in usuarios_ativos:
+        if agora - usuarios_ativos[user_id] < TEMPO_ESPERA:
+            return False
+    usuarios_ativos[user_id] = agora
+    return True
+
+# =========================
+# EVENTO NOVO MEMBRO NO GRUPO DE PRÉVIA
 # =========================
 @bot.message_handler(content_types=["new_chat_members"])
 def welcome_new_member(message):
@@ -87,10 +101,11 @@ def welcome_new_member(message):
             bot.send_message(
                 member.id,
                 f"Olá {member.first_name}! 👋\n"
-                f"Para entrar no grupo VIP, é necessário pagar {VALOR}.\n"
+                f"Você entrou no grupo de prévia.\n"
+                f"Para acessar o grupo VIP, é necessário pagar {VALOR}.\n"
                 f"IBAN: {IBAN}\n\n"
                 "Após o pagamento, envie uma foto ou arquivo comprovando aqui.\n"
-                "Se estiver configurado para aprovação automática, você será adicionado diretamente ao grupo!"
+                "Se estiver configurado para aprovação automática, você será adicionado diretamente ao VIP!"
             )
             log_telegram(f"Novo usuário pendente: {member.first_name} ({member.id})")
         except Exception as e:
@@ -119,8 +134,26 @@ def receber_comprovante(message):
 # =========================
 @bot.message_handler(commands=["start"])
 def start(message):
-    bot.reply_to(message, "Oi 👋 estou online 24h no Railway! Este é o bot do grupo VIP.")
-    log_telegram(f"Bot iniciado. Usuário {message.from_user.first_name} ({message.from_user.id}) executou /start")
+    user_id = message.from_user.id
+    nome = message.from_user.first_name
+
+    if not pode_iniciar(user_id):
+        bot.reply_to(message, f"Espere {TEMPO_ESPERA} segundos antes de usar /start novamente.")
+        return
+
+    markup = types.InlineKeyboardMarkup()
+    btn = types.InlineKeyboardButton("💎 Entrar no VIP", url=LINK_GRUPO_VIP)
+    markup.add(btn)
+
+    bot.send_message(
+        user_id,
+        f"Oi {nome}! 👋\n"
+        "Bem-vindo ao bot VIP!\n\n"
+        f"Para liberar sua entrada no VIP, clique no botão abaixo e siga as instruções de pagamento ({VALOR}):",
+        reply_markup=markup
+    )
+
+    log_telegram(f"Usuário iniciou /start: {nome} ({user_id})")
 
 # =========================
 # RODA O BOT 24H
@@ -131,4 +164,3 @@ try:
 except Exception as e:
     print("Erro no polling:", e)
     log_telegram(f"Erro no polling: {e}")
-
