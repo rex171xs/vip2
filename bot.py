@@ -8,7 +8,7 @@ from telebot import types
 # =========================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 LINK_GRUPO_VIP = "https://t.me/+KJmxLUcAUIllNTU0"  # link VIP final
-VALOR = "15€"
+VALOR = "35€"
 IBAN = "LT94 3250 0541 9665 3953"
 CSV_FILE = "pagamentos.csv"
 VIDEO_PATH = "mini_vip.mp4"  # caminho do mini vídeo
@@ -163,4 +163,5 @@ def start(message):
 # RODA 24H
 # =========================
 bot.infinity_polling(timeout=10,long_polling_timeout=5)
+
 
